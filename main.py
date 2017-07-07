@@ -1,16 +1,28 @@
+import cgi
+from google.appengine.api import users
 import webapp2
 
-class HelloWebapp2(webapp2.RequestHandler):
+MAIN_PAGE_HTML = """<html>
+  <body>
+    <form action="/sign" method="post">
+      <div><textarea name="content" rows="3" cols="60"></textarea></div>
+      <div><input type="submit" value="Sign Guestbook"></div>
+    </form>
+  </body>
+</html>
+"""
+
+class MainPage(webapp2.RequestHandler):
     def get(self):
-        self.response.write('Hello, webapp2!')
+        self.response.write(MAIN_PAGE_HTML)
+
+class Guestbook(webapp2.RequestHandler):
+    def post(self):
+        self.response.write('<html><body>You wrote:<pre>')
+        self.response.write(cgi.escape(self.request.get('content')))
+        self.response.write('</pre></body></html>')
 
 app = webapp2.WSGIApplication([
-    ('/', HelloWebapp2),
+    ('/', MainPage),
+    ('/sign', Guestbook),
 ], debug=True)
-
-def main():
-    from paste import httpserver
-    httpserver.serve(app, host='127.0.0.1', port='8080')
-
-if __name__ == '__main__':
-    main()
