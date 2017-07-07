@@ -52,7 +52,7 @@ class MainPage(webapp2.RequestHandler):
     def get(self):
         self.response.write('<html><body>')
         if not users.get_current_user():
-            self.response.write('hoge</body></html>')
+            self.response.write('<a href="'+users.create_login_url(self.request.uri)+'">login</a></body></html>')
             return
         guestbook_name = self.request.get('guestbook_name',
                                           DEFAULT_GUESTBOOK_NAME)
