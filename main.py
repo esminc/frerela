@@ -125,6 +125,22 @@ class FriendList(webapp2.RequestHandler):
         self.response.write(MAIN_PAGE_FOOTER_TEMPLATE %
                             (sign_query_params, cgi.escape(guestbook_name),
                              url, url_linktext))
+    def post(self):
+        guestbook_name = self.request.get('guestbook_name',
+                                          DEFAULT_GUESTBOOK_NAME)
+        greeting = Greeting(parent=guestbook_key(guestbook_name))
+
+        if users.get_current_user():
+            greeting.author = Author(
+                    identity=users.get_current_user().user_id(),
+                    email=users.get_current_user().email())
+
+        greeting.content = self.request.get('content')
+        greeting.put()
+
+        query_params = {'guestbook_name': guestbook_name}
+        self.redirect('/?' + urllib.urlencode(query_params))
+
 
 class Guestbook(webapp2.RequestHandler):
     def post(self):
@@ -149,21 +165,16 @@ class Guestbook(webapp2.RequestHandler):
         self.redirect('/?' + urllib.urlencode(query_params))
 
 class FriendRegister(webapp2.RequestHandler):
-    def post(self):
-        guestbook_name = self.request.get('guestbook_name',
-                                          DEFAULT_GUESTBOOK_NAME)
-        greeting = Greeting(parent=guestbook_key(guestbook_name))
+    def get(self):
 
-        if users.get_current_user():
-            greeting.author = Author(
-                    identity=users.get_current_user().user_id(),
-                    email=users.get_current_user().email())
-
-        greeting.content = self.request.get('content')
-        greeting.put()
-
-        query_params = {'guestbook_name': guestbook_name}
-        self.redirect('/?' + urllib.urlencode(query_params))
+        FRIEND_TEMPLATE = """    <form action="/" method="post">
+              <input value="" name="friend_name">
+              <input type="submit" value="ズッ友">
+            </form>
+          </body>
+        </html>
+        """
+        self.response.write(FRIEND_TEMPLATE)
 
 app = webapp2.WSGIApplication([
     ('/', FriendList),
