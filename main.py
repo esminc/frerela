@@ -56,44 +56,12 @@ class FriendDetail(webapp2.RequestHandler):
         if not users.get_current_user():
             self.response.write('<a href="'+users.create_login_url(self.request.uri)+'">login</a></body></html>')
             return
-        guestbook_name = self.request.get('guestbook_name',
-                                          DEFAULT_GUESTBOOK_NAME)
 
-        # Ancestor Queries, as shown here, are strongly consistent
-        # with the High Replication Datastore. Queries that span
-        # entity groups are eventually consistent. If we omitted the
-        # ancestor from this query there would be a slight chance that
-        # Greeting that had just been written would not show up in a
-        # query.
-        greetings_query = Greeting.query(
-            ancestor=guestbook_key(guestbook_name)).order(-Greeting.date)
-        greetings = greetings_query.fetch(10)
+        id = int(self.request.get('id'))
+        friend = Friend.get_by_id(id)
 
-        user = users.get_current_user()
-        for greeting in greetings:
-            if greeting.author:
-                author = greeting.author.email
-                if user and user.user_id() == greeting.author.identity:
-                    author += ' (You)'
-                self.response.write('<b>%s</b> wrote:' % author)
-            else:
-                self.response.write('An anonymous person wrote:')
-            self.response.write('<blockquote>%s</blockquote>' %
-                                cgi.escape(greeting.content))
-
-        if user:
-            url = users.create_logout_url(self.request.uri)
-            url_linktext = 'Logout'
-        else:
-            url = users.create_login_url(self.request.uri)
-            url_linktext = 'Login'
-
-        # Write the submission form and the footer of the page
-        sign_query_params = urllib.urlencode({'guestbook_name':
-                                              guestbook_name})
-        self.response.write(MAIN_PAGE_FOOTER_TEMPLATE %
-                            (sign_query_params, cgi.escape(guestbook_name),
-                             url, url_linktext))
+        self.response.write('<div>%s</div>' % str(friend.name))
+        self.response.write('</body></html>')
 
 class FriendList(webapp2.RequestHandler):
     def get(self):
@@ -106,7 +74,8 @@ class FriendList(webapp2.RequestHandler):
         self.response.write('<ul>')
         friends = Friend.query().fetch(10)
         for f in friends:
-            self.response.write('<li>%s</li>' % f.name)
+            key = str(f.key.id())
+            self.response.write('<li><a href="/friend_detail?id=%s">%s</a></li>' % (key, f.name))
         self.response.write('</ul>')
 
         user = users.get_current_user()
