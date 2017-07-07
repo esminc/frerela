@@ -51,6 +51,9 @@ class Greeting(ndb.Model):
 class MainPage(webapp2.RequestHandler):
     def get(self):
         self.response.write('<html><body>')
+        if not users.get_current_user():
+            self.response.write('hoge</body></html>')
+            return
         guestbook_name = self.request.get('guestbook_name',
                                           DEFAULT_GUESTBOOK_NAME)
 
