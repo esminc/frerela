@@ -101,17 +101,15 @@ class FriendList(webapp2.RequestHandler):
         if not users.get_current_user():
             self.response.write('<a href="'+users.create_login_url(self.request.uri)+'">login</a></body></html>')
             return
-        guestbook_name = self.request.get('guestbook_name',
-                                          DEFAULT_GUESTBOOK_NAME)
 
-        greetings_query = GuestBook.query()
-        greetings = greetings_query.fetch(10)
+        # List friends
+        self.response.write('<ul>')
+        friends = Friend.query().fetch(10)
+        for f in friends:
+            self.response.write('<li>%s</li>' % f.name)
+        self.response.write('</ul>')
 
         user = users.get_current_user()
-        for greeting in greetings:
-            self.response.write('<blockquote>%s</blockquote>' %
-                                cgi.escape(greeting))
-
         if user:
             url = users.create_logout_url(self.request.uri)
             url_linktext = 'Logout'
@@ -119,28 +117,16 @@ class FriendList(webapp2.RequestHandler):
             url = users.create_login_url(self.request.uri)
             url_linktext = 'Login'
 
-        # Write the submission form and the footer of the page
-        sign_query_params = urllib.urlencode({'guestbook_name':
-                                              guestbook_name})
+        sign_query_params = ''
+        guestbook_name = ''
         self.response.write(MAIN_PAGE_FOOTER_TEMPLATE %
                             (sign_query_params, cgi.escape(guestbook_name),
                              url, url_linktext))
     def post(self):
-        guestbook_name = self.request.get('guestbook_name',
-                                          DEFAULT_GUESTBOOK_NAME)
-        greeting = Greeting(parent=guestbook_key(guestbook_name))
-
-        if users.get_current_user():
-            greeting.author = Author(
-                    identity=users.get_current_user().user_id(),
-                    email=users.get_current_user().email())
-
-        greeting.content = self.request.get('content')
-        greeting.put()
-
-        query_params = {'guestbook_name': guestbook_name}
-        self.redirect('/?' + urllib.urlencode(query_params))
-
+        name = self.request.get('name')
+        friend = Friend(name = name)
+        friend.put()
+        self.redirect('/')
 
 class Guestbook(webapp2.RequestHandler):
     def post(self):
@@ -168,8 +154,8 @@ class FriendRegister(webapp2.RequestHandler):
     def get(self):
 
         FRIEND_TEMPLATE = """    <form action="/" method="post">
-              <input value="" name="friend_name">
-              <input type="submit" value="ズッ友">
+              <input value="" name="name">
+              <input type="submit" value="zuttomo">
             </form>
           </body>
         </html>
