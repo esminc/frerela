@@ -47,8 +47,10 @@ class Greeting(ndb.Model):
     content = ndb.StringProperty(indexed=False)
     date = ndb.DateTimeProperty(auto_now_add=True)
 
+class Friend(ndb.Model):
+    name = ndb.StringProperty(indexed=False)
 
-class MainPage(webapp2.RequestHandler):
+class FriendDetail(webapp2.RequestHandler):
     def get(self):
         self.response.write('<html><body>')
         if not users.get_current_user():
@@ -93,6 +95,37 @@ class MainPage(webapp2.RequestHandler):
                             (sign_query_params, cgi.escape(guestbook_name),
                              url, url_linktext))
 
+class FriendList(webapp2.RequestHandler):
+    def get(self):
+        self.response.write('<html><body>')
+        if not users.get_current_user():
+            self.response.write('<a href="'+users.create_login_url(self.request.uri)+'">login</a></body></html>')
+            return
+        guestbook_name = self.request.get('guestbook_name',
+                                          DEFAULT_GUESTBOOK_NAME)
+
+        greetings_query = GuestBook.query()
+        greetings = greetings_query.fetch(10)
+
+        user = users.get_current_user()
+        for greeting in greetings:
+            self.response.write('<blockquote>%s</blockquote>' %
+                                cgi.escape(greeting))
+
+        if user:
+            url = users.create_logout_url(self.request.uri)
+            url_linktext = 'Logout'
+        else:
+            url = users.create_login_url(self.request.uri)
+            url_linktext = 'Login'
+
+        # Write the submission form and the footer of the page
+        sign_query_params = urllib.urlencode({'guestbook_name':
+                                              guestbook_name})
+        self.response.write(MAIN_PAGE_FOOTER_TEMPLATE %
+                            (sign_query_params, cgi.escape(guestbook_name),
+                             url, url_linktext))
+
 class Guestbook(webapp2.RequestHandler):
     def post(self):
         # We set the same parent key on the 'Greeting' to ensure each
@@ -115,7 +148,26 @@ class Guestbook(webapp2.RequestHandler):
         query_params = {'guestbook_name': guestbook_name}
         self.redirect('/?' + urllib.urlencode(query_params))
 
+class FriendRegister(webapp2.RequestHandler):
+    def post(self):
+        guestbook_name = self.request.get('guestbook_name',
+                                          DEFAULT_GUESTBOOK_NAME)
+        greeting = Greeting(parent=guestbook_key(guestbook_name))
+
+        if users.get_current_user():
+            greeting.author = Author(
+                    identity=users.get_current_user().user_id(),
+                    email=users.get_current_user().email())
+
+        greeting.content = self.request.get('content')
+        greeting.put()
+
+        query_params = {'guestbook_name': guestbook_name}
+        self.redirect('/?' + urllib.urlencode(query_params))
+
 app = webapp2.WSGIApplication([
-    ('/', MainPage),
+    ('/', FriendList),
+    ('/friend_register', FriendRegister),
+    ('/friend_detail', FriendDetail),
     ('/sign', Guestbook),
 ], debug=True)
